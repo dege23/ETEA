@@ -1,6 +1,5 @@
 import mysql2 from "mysql2/promise";
 import { config } from "dotenv";
-import { debug } from "node:console";
 
 config();
 
