@@ -1,10 +1,10 @@
 import { Router } from "express";
 import newUser from "../../data/users/newUser.mjs";
 import {
-  isValidFullName,
-  isValidUsername,
-  isValidEmail,
-  isValidDateOfBirth,
+  isValidFullNamePattern,
+  isValidUsernamePattern,
+  validateEmail,
+  isValidBirthDate,
 } from "../../data/validates/users/index.mjs";
 const routerUsers = Router();
 // import { debug } from "console";
@@ -42,38 +42,68 @@ routerUsers.post("/users/register", async (req, res) => {
       message: "Data de nascimento é obrigatória!",
     });
   }
-  // Verify if full name dont have symbols
-  if (!isValidFullName(fullName)) {
+  // Validar pattern de nome completo
+  if (!isValidFullNamePattern(fullName)) {
     return res.status(400).json({
       success: false,
       message: "Nome completo só pode conter letras!",
     });
   }
-  // Verify if username dont have symbols
-  if (!isValidUsername(userName)) {
+  // Verificar se o nome de usuário começa ou termina com '.'
+  if (userName.startsWith(".") || userName.endsWith(".")) {
     return res.status(400).json({
       success: false,
-      message: "Nome de usuário só pode conter letras e '.'!",
+      message: "O nome de usuário não pode iniciar ou terminar com '.'",
     });
   }
-  // Verify if email is valid
-  const isValidateEmail = await isValidEmail(email);
-  if (!isValidateEmail.valid) {
+  // Verificar se o nome de usuário tem entre 4 e 20 caracteres
+  if (userName.length < 4 || userName.length > 20) {
+    return res.status(400).json({
+      success: false,
+      message: "O nome de usuário deve ter entre 4 e 20 caracteres!",
+    });
+  }
+  // Validar pattern de username
+  if (!isValidUsernamePattern(userName)) {
+    return res.status(400).json({
+      success: false,
+      message: "Nome de usuário inválido!",
+      data: "/^[a-zA-Z0-9]+(?:.[a-zA-Z0-9]+)*$/",
+    });
+  }
+  // Validar pattern de email
+  const isValidEmail = await validateEmail(email);
+  if (!isValidEmail.valid) {
     return res.status(400).json({
       success: false,
       message: "Email inválido!",
     });
   }
-  // Verify if date of birth is valid
-  const [day, month, year] = birthDate.split("-");
-  if (!isValidDateOfBirth(day, month, year)) {
+  // Verificar se a senha tem entre 6 e 20 caracteres
+  if (password.length < 6 || password.length > 20) {
+    return res.status(400).json({
+      success: false,
+      message: "A senha deve ter entre 6 e 20 caracteres!",
+    });
+  }
+  // Validar pattern de data de nascimento
+  const [year, month, day] = birthDate.split("-");
+  if (!isValidBirthDate(year, month, day)) {
     return res.status(400).json({
       success: false,
       message: "Data de nascimento inválida!",
     });
   }
 
-  newUser(res, { fullName, userName, email, password, birthDate });
+  const toDBBirthDate = `${year}-${month}-${day}`;
+
+  newUser(res, {
+    fullName,
+    userName,
+    email,
+    password,
+    birthDate: toDBBirthDate,
+  });
   res.setHeader("Content-Type", "application/json");
 });
 
